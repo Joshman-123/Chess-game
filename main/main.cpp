@@ -1,7 +1,8 @@
 #include <iostream>
-
+#include <CoreGame.hpp>
 int main()
 {
-    std::cout<<"hello world\n";
+    core::CoreGame ChessGame{};
+    ChessGame.Run();
     return 0;
 }
