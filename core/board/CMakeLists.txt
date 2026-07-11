@@ -16,7 +16,7 @@ target_include_directories(ChessBoard
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/includes # Public headers are in the 'src' directory
 )
-
+target_link_libraries(ChessBoard PUBLIC utility Render)
 # This command is crucial. It does two things:
 # 1. PUBLIC Include Directories: Any target that links to ChessBoard will automatically
 #    get its 'include' directory added to their include paths.

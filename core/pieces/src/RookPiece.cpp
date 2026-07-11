@@ -5,10 +5,12 @@ namespace piece
     {
 
     }
+
     RookPiece::~RookPiece()
     {
 
     }
+
     MoveReturnType RookPiece::move()
     {
         return MoveReturnType::SUCESS;

@@ -5,10 +5,12 @@ namespace piece
     {
 
     }
+
     QueenPiece::~QueenPiece()
     {
 
     }
+
     MoveReturnType QueenPiece::move()
     {
         return MoveReturnType::SUCESS;
