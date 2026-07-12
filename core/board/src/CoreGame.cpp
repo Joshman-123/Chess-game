@@ -25,7 +25,8 @@ namespace core
 
         if(not l_infOrErr.has_value())
         {
-            LOG_ERROR("Error %d\n", l_infOrErr.error());
+            LOG_ERROR("Error %d\n", static_cast<int>(l_infOrErr.error()));
+            return CoreRetType::FAILED;
         }
 
         l_infOrErr.value()->execute();

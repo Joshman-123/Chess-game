@@ -13,5 +13,8 @@ namespace glRender
         private:
         DELETE_COPY_MOVE_OPERATORS(OpenGlRender);
         GLFWwindow *window;
+        unsigned int m_shaderProgram;
+        unsigned int m_VAO;
+        unsigned int m_VBO;
     };
 }
