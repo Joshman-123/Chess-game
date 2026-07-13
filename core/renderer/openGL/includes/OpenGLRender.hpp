@@ -16,5 +16,7 @@ namespace glRender
         unsigned int m_shaderProgram;
         unsigned int m_VAO;
         unsigned int m_VBO;
+        unsigned int m_EBO;
+        std::vector<unsigned int> indices;
     };
 }

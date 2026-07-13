@@ -16,9 +16,9 @@ namespace core
         std::cout<<"Starting Main Loop\n";
         render::RenderConfig l_renderCfg{};
         l_renderCfg.m_renderType = "OpenGL";
-        l_renderCfg.m_windowName = "TEST GAME";
-        l_renderCfg.m_height = 864;
-        l_renderCfg.m_width = 1024;
+        l_renderCfg.m_windowName = "Chess Game";
+        l_renderCfg.m_height = 800;
+        l_renderCfg.m_width = 800;
         l_renderCfg.m_samples = 4;
 
         const auto l_infOrErr = render::RenderFactory::create(l_renderCfg);
@@ -30,6 +30,7 @@ namespace core
         }
 
         l_infOrErr.value()->execute();
+
         return CoreRetType::SUCESS;
     }
 }
