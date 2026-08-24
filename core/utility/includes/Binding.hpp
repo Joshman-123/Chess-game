@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <tuple>
+#include <cstdint>
 #include <expected>
 #include <stdexcept>
 #include <stdio.h>  
