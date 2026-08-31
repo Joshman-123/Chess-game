@@ -1,5 +1,9 @@
 add_library(OpenGLRender OBJECT
     src/OpenGLRender.cpp
+    src/VertexBufferObject.cpp
+    src/VertexArrayObject.cpp
+    src/ElementBufferObject.cpp
+    src/Shader.cpp
 )
 
 target_include_directories(OpenGLRender

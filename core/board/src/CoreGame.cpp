@@ -17,8 +17,8 @@ namespace core
         render::RenderConfig l_renderCfg{};
         l_renderCfg.m_renderType = "OpenGL";
         l_renderCfg.m_windowName = "Chess Game";
-        l_renderCfg.m_height = 800;
-        l_renderCfg.m_width = 800;
+        l_renderCfg.m_height = 1000;
+        l_renderCfg.m_width = 1000;
         l_renderCfg.m_samples = 4;
 
         const auto l_infOrErr = render::RenderFactory::create(l_renderCfg);

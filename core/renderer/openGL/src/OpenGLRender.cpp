@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 #include "OpenGLRender.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -77,8 +79,8 @@ namespace glRender
         glCompileShader(vertexShader);
         // (Error checking for shader compilation would go here)
         // Check for shader compile errors
-        int success;
-        char infoLog[512];
+        int success{};
+        char infoLog[512]{};
         glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
         if (!success)
         {
@@ -167,7 +169,7 @@ namespace glRender
                 else
                 {
                     // Black square (a dark gray looks better)
-                    r = 0.2f; g = 0.2f; b = 0.2f;
+                    r = 0.20f; g = 0.30f; b = 0.15f;
                 }
 
                 // Top-left
@@ -251,6 +253,8 @@ namespace glRender
         glBindVertexArray(0);
 
         LOG_INFO("OpenGLRender created with width: %d, height: %d", f_config.m_width, f_config.m_height);
+
+
     }
 
     OpenGlRender::~OpenGlRender()
@@ -274,7 +278,23 @@ namespace glRender
     {
         LOG_INFO("Calling OpenGLRender::execute");
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        
+        int width,height, nrChannels;
+        const char *texturePath = "ChessPictures/black/Bishop.png";
+        unsigned char *data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
+
+        GLuint texture{};
+        glGenTextures(1, &texture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    
         while (!glfwWindowShouldClose(window))
         {
             // Input
