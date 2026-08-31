@@ -6,9 +6,11 @@
 #include "Logger.hpp"
 #include <iostream>
 #include <vector>
-#include "OpenGLRender.hpp"
+#include <filesystem>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "OpenGLRender.hpp"
 static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -16,28 +18,18 @@ static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 
 namespace glRender
 {
-    // Simple shaders for drawing a colored triangle.
-    // In a real application, you would load these from files.
-    const char *vertexShaderSource = R"glsl(#version 330 core
-        layout (location = 0) in vec3 aPos;
-        layout (location = 1) in vec3 aColor;
-        out vec3 ourColor;
-        void main()
-        {
-           gl_Position = vec4(aPos, 1.0);
-           ourColor = aColor;
-        }
-    )glsl";
-    const char *fragmentShaderSource = R"glsl(#version 330 core
-        out vec4 FragColor;
-        in vec3 ourColor;
-        void main()
-        {
-           FragColor = vec4(ourColor, 1.0f);
-        }
-    )glsl";
+    static const std::filesystem::path kProjectRoot = std::filesystem::path(__FILE__)
+        .parent_path()
+        .parent_path()
+        .parent_path()
+        .parent_path()
+        .parent_path();
 
-    static utl::AutoRegister<render::RenderInf, OpenGlRender, render::RenderConfig> reg_bus("OpenGL");
+    static const std::string kVertexShaderPath = (kProjectRoot / "core" / "renderer" / "openGL" / "src" / "Shaders" / "VertexShader.txt").lexically_normal().string();
+    static const std::string kFragmentShaderPath = (kProjectRoot / "core" / "renderer" / "openGL" / "src" / "Shaders" / "FragmentShader.txt").lexically_normal().string();
+    static const std::string kTexturePath = (kProjectRoot / "ChessPictures" / "black" / "Bishop.png").lexically_normal().string();
+
+    static utl::AutoRegister<render::RenderInf, OpenGlRender, render::RenderConfig> s_glHook("OpenGL");
 
     OpenGlRender::OpenGlRender(const render::RenderConfig &f_config)
     : window(nullptr), m_shaderProgram(0), m_VAO(0), m_VBO(0), m_EBO(0)
@@ -72,55 +64,38 @@ namespace glRender
 
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-        // --- Shader Compilation ---
-        // Vertex Shader
-        unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glCompileShader(vertexShader);
-        // (Error checking for shader compilation would go here)
-        // Check for shader compile errors
-        int success{};
-        char infoLog[512]{};
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            LOG_ERROR("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s", infoLog);
-        }
+        m_shader = std::make_unique<glRender::Shader>(kVertexShaderPath.c_str(), kFragmentShaderPath.c_str());
 
-        // Fragment Shader
-        unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(fragmentShader);
-        // (Error checking for shader compilation would go here)
-        // Check for shader compile errors
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            LOG_ERROR("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s", infoLog);
-        }
+        std::vector<float> vertices{};
 
-        // Link shaders into a shader program
-        m_shaderProgram = glCreateProgram();
-        glAttachShader(m_shaderProgram, vertexShader);
-        glAttachShader(m_shaderProgram, fragmentShader);
-        glLinkProgram(m_shaderProgram);
-        // (Error checking for shader linking would go here)
-        // Check for linking errors
-        glGetProgramiv(m_shaderProgram, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(m_shaderProgram, 512, NULL, infoLog);
-            LOG_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s", infoLog);
-        }
+        const uint8_t floatsPerVertex = 6; // 3 for position, 3 for color
+        const int squaresPerRow = 8;
+        generateGridVerticesAndIndices(vertices, this->indices, squaresPerRow, floatsPerVertex);
 
-        // Delete the individual shaders as they're now linked into the program
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        m_vao = std::make_unique<glRender::glVAO>();
+        m_vao->Bind();
 
+        // 2. Generate a Vertex Buffer Object (VBO), bind it, and copy vertex data to it
+        m_vbo = std::make_unique<glRender::glVBO>(vertices.data(), vertices.size() * sizeof(float), GL_STATIC_DRAW);
 
-    
+        // Generate and bind the Element Buffer Object (EBO)
+        m_ebo = std::make_unique<glRender::glEBO>(indices.data(), indices.size() * sizeof(unsigned int), GL_STATIC_DRAW);
 
+        // 3. Set the vertex attribute pointers while the VAO is still bound.
+        // This tells OpenGL how to interpret the vertex data in the VBO.
+        // Position attribute
+        m_vao->LinkVBO(*m_vbo, 0, floatsPerVertex * sizeof(float), (void*)0);
+        // Color attribute
+        m_vao->LinkVBO(*m_vbo, 1, floatsPerVertex * sizeof(float), (void*)(3 * sizeof(float)));
+
+        m_ebo->Bind();
+        m_vao->Unbind();
+
+        LOG_INFO("OpenGLRender created with width: %d, height: %d", f_config.m_width, f_config.m_height);
+    }
+
+    void OpenGlRender::generateGridVerticesAndIndices(std::vector<float> &vertices, std::vector<unsigned int> &indices, int squaresPerRow, int floatsPerVertex)
+    {
     /*          Default Grid Dimension of Open GL 
       (-1,1)-----------------(0,1)-----------------(1,1)
         |                      |                     |
@@ -138,15 +113,14 @@ namespace glRender
 
         */
         // --- Vertex Data and Buffers ---
-        const int squaresPerRow = 8;
         const int numSquares = squaresPerRow * squaresPerRow;
         const int verticesPerSquare = 4;
-        const int floatsPerVertex = 6; // 3 for position (XYZ), 3 for color (RGB)
         const int totalVertices = numSquares * verticesPerSquare;
         const int totalFloats = totalVertices * floatsPerVertex;
 
-        std::vector<float> vertices(totalFloats);
-        
+        vertices.resize(totalFloats);
+        indices.resize(numSquares * 6);
+
         const float squareSize = 2.0f / squaresPerRow; // Size of each square in clip space (-1.0 to 1.0)
         const float startX = -1.0f;
         const float startY = 1.0f;
@@ -206,10 +180,6 @@ namespace glRender
             }
         }
 
-        const int indicesPerSquare = 6; // 2 triangles per square
-        const int totalIndices = numSquares * indicesPerSquare;
-        indices.resize(totalIndices);
-
         int index = 0;
         for (int i = 0; i < numSquares; ++i)
         {
@@ -222,39 +192,6 @@ namespace glRender
             indices[index++] = baseVertex + 2; // Bottom-right
             indices[index++] = baseVertex + 3; // Bottom-left
         }
-        
-        // 1. Generate and bind a Vertex Array Object (VAO)
-        glGenVertexArrays(1, &m_VAO);
-        glBindVertexArray(m_VAO); // Bind the VAO *before* configuring buffers and attributes
-
-        // 2. Generate a Vertex Buffer Object (VBO), bind it, and copy vertex data to it
-        glGenBuffers(1, &m_VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-        // Generate and bind the Element Buffer Object (EBO)
-        glGenBuffers(1, &m_EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-        // 3. Set the vertex attribute pointers
-        // This tells OpenGL how to interpret the vertex data in the VBO
-        // Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, floatsPerVertex * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-        // Color attribute
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, floatsPerVertex * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-
-
-        // 4. Unbind the VBO and VAO. It's good practice to unbind to avoid accidental modification.
-        // The VAO still remembers the VBO and the attribute pointers.
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-
-        LOG_INFO("OpenGLRender created with width: %d, height: %d", f_config.m_width, f_config.m_height);
-
-
     }
 
     OpenGlRender::~OpenGlRender()
@@ -263,7 +200,7 @@ namespace glRender
         glDeleteVertexArrays(1, &m_VAO);
         glDeleteBuffers(1, &m_VBO);
         glDeleteBuffers(1, &m_EBO);
-        glDeleteProgram(m_shaderProgram);
+        m_shader->Deactivate(); // Deactivate the shader program
 
         if(window != nullptr)
         {
@@ -279,8 +216,7 @@ namespace glRender
         LOG_INFO("Calling OpenGLRender::execute");
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         int width,height, nrChannels;
-        const char *texturePath = "ChessPictures/black/Bishop.png";
-        unsigned char *data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
+        unsigned char *data = stbi_load(kTexturePath.c_str(), &width, &height, &nrChannels, 0);
 
         GLuint texture{};
         glGenTextures(1, &texture);
@@ -301,9 +237,14 @@ namespace glRender
             glfwPollEvents(); 
 
             // Rendering
-            glClear(GL_COLOR_BUFFER_BIT); 
-            glUseProgram(m_shaderProgram);
-            glBindVertexArray(m_VAO);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            m_shader->Activate();
+
+            m_vao->Bind();
+
+            m_ebo->Bind();
+
             glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
 
             // Swap buffers

@@ -2,7 +2,7 @@
 #include <ElementBufferObject.hpp>
 namespace glRender
 {
-    glEBO::glEBO(GLfloat *f_data, const GLsizeiptr f_size, const GLenum f_usage)
+    glEBO::glEBO(const void *f_data, const GLsizeiptr f_size, const GLenum f_usage)
     {
         // 2. Generate a Vertex Buffer Object (VBO), bind it, and copy vertex data to it
         glGenBuffers(1, &m_id);

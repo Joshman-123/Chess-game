@@ -5,15 +5,15 @@ namespace glRender
     glVAO::glVAO()
     {
         glGenVertexArrays(1, &m_id);
+        glBindVertexArray(m_id);
     }
 
-    void glVAO::LinkVBO(glVBO &f_vbo,const GLuint f_layout)
+    void glVAO::LinkVBO(glVBO &f_vbo,const GLuint f_layout,const GLsizei f_stride,const void *f_offset)
     {
         f_vbo.Bind();
-        glVertexAttribPointer(f_layout, 3, GL_FLOAT, GL_FALSE,0 , (void*)0);
+        glVertexAttribPointer(f_layout, 3, GL_FLOAT, GL_FALSE, f_stride, f_offset);
         glEnableVertexAttribArray(f_layout);
         f_vbo.Unbind();
-        Unbind();
     }
     void glVAO::Bind()
     {

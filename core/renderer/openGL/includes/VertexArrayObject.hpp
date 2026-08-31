@@ -12,7 +12,7 @@ namespace glRender
         public:
         glVAO();
         ~glVAO() = default;
-        void LinkVBO(glVBO &f_vbo, const GLuint f_layout);
+        void LinkVBO(glVBO &f_vbo, const GLuint f_layout, const GLsizei f_stride, const void *f_offset);
         void Bind();
         void Unbind();
         void Delete();
