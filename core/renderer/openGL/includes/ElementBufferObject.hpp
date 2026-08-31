@@ -9,7 +9,7 @@ namespace glRender
     class glEBO final
     {
         public:
-        glEBO(GLfloat *f_data, const GLsizeiptr f_size, const GLenum f_usage);
+        glEBO(const void *f_data, const GLsizeiptr f_size, const GLenum f_usage);
         void Bind();
         void Unbind();
         void Delete();

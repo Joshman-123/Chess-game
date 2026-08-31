@@ -9,6 +9,13 @@ namespace glRender
     {
         std::string vertexShaderSourceStr = get_file_contents(f_vertexShaderSource);
         std::string fragmentShaderSourceStr = get_file_contents(f_fragmentShaderSource);
+
+        if (vertexShaderSourceStr.empty() || fragmentShaderSourceStr.empty())
+        {
+            LOG_ERROR("ERROR::SHADER::FILE_NOT_FOUND::FALLBACK_USED");
+            // Fallback shader sources
+        }
+
         const char *vertexShaderSource = vertexShaderSourceStr.c_str();
         const char *fragmentShaderSource = fragmentShaderSourceStr.c_str();
 
